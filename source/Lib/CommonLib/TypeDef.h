@@ -50,6 +50,12 @@
 #include <assert.h>
 #include <cassert>
 
+#define IBC_AFFINE                                        1
+#if IBC_AFFINE
+#define JVET_K0076_CPR                                    1 // current picture referencing or intra block copy mode
+#define JVET_K0076_CPR_DT                                 1 // dualItree support for CPR
+#endif
+
 #define REUSE_CU_RESULTS                                  1
 
 #define REMOVE_MV_ADAPT_PREC                              1 // remove the high precision flag in the MV class

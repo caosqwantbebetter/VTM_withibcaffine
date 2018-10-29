@@ -258,6 +258,14 @@ void EncCu::init( EncLib* pcEncLib, const SPS& sps PARL_PARAM( const int tId ) )
   ::memset(m_subMergeBlkNum, 0, sizeof(m_subMergeBlkNum));
   m_prevPOC = MAX_UINT;
   m_clearSubMergeStatic = false;
+
+
+#if JVET_K0076_CPR
+  if (m_pcEncCfg->getIBCHashSearch())
+  {
+    m_ibcHashMap.init(m_pcEncCfg->getSourceWidth(), m_pcEncCfg->getSourceHeight());
+  }
+#endif
 }
 
 // ====================================================================================================================
@@ -506,7 +514,7 @@ void EncCu::xCheckBestMode( CodingStructure *&tempCS, CodingStructure *&bestCS, 
 
 void EncCu::xCompressCU( CodingStructure *&tempCS, CodingStructure *&bestCS, Partitioner &partitioner )
 {
-#if ENABLE_SPLIT_PARALLELISM
+#if ENABLE_SPLIT_PARALLELISM    //并行划分
   CHECK( m_dataId != tempCS->picture->scheduler.getDataId(), "Working in the wrong dataId!" );
 
   if( m_pcEncCfg->getNumSplitThreads() != 1 && tempCS->picture->scheduler.getSplitJobId() == 0 )
@@ -524,8 +532,8 @@ void EncCu::xCompressCU( CodingStructure *&tempCS, CodingStructure *&bestCS, Par
   Slice&   slice      = *tempCS->slice;
   const PPS &pps      = *tempCS->pps;
   const SPS &sps      = *tempCS->sps;
-  const uint32_t uiLPelX  = tempCS->area.Y().lumaPos().x;
-  const uint32_t uiTPelY  = tempCS->area.Y().lumaPos().y;
+  const uint32_t uiLPelX  = tempCS->area.Y().lumaPos().x;   //左上x
+  const uint32_t uiTPelY  = tempCS->area.Y().lumaPos().y;   //左上y
 
   const unsigned wIdx = gp_sizeIdxInfo->idxFrom( partitioner.currArea().lwidth()  );
 
@@ -545,6 +553,7 @@ void EncCu::xCompressCU( CodingStructure *&tempCS, CodingStructure *&bestCS, Par
 
   m_cuChromaQpOffsetIdxPlus1 = 0;
 
+  //色度QP调整
   if( slice.getUseChromaQpAdj() )
   {
     int lgMinCuSize = sps.getLog2MinCodingBlockSize() +
@@ -564,7 +573,7 @@ void EncCu::xCompressCU( CodingStructure *&tempCS, CodingStructure *&bestCS, Par
   DTRACE_UPDATE( g_trace_ctx, std::make_pair( "cuh", tempCS->area.lheight() ) );
   DTRACE( g_trace_ctx, D_COMMON, "@(%4d,%4d) [%2dx%2d]\n", tempCS->area.lx(), tempCS->area.ly(), tempCS->area.lwidth(), tempCS->area.lheight() );
 
-  do
+  do  //尝试当前编码器可用的编码模式
   {
     const EncTestMode currTestMode = m_modeCtrl->currTestMode();
 
@@ -615,6 +624,18 @@ void EncCu::xCompressCU( CodingStructure *&tempCS, CodingStructure *&bestCS, Par
     {
       xCheckIntraPCM( tempCS, bestCS, partitioner, currTestMode );
     }
+#if JVET_K0076_CPR   //是编码器CPR模式的入口
+    else if (currTestMode.type == ETM_IBC)
+    {
+      xCheckRDCostIntraBC(tempCS, bestCS, partitioner, currTestMode);
+    }
+    else if (currTestMode.type == ETM_IBC_MERGE)
+    {
+      xCheckRDCostIntraBCMerge2Nx2N(tempCS, bestCS, partitioner, currTestMode);
+    }
+#endif // CPR
+
+
     else if( isModeSplit( currTestMode ) )
     {
 
@@ -1695,6 +1716,47 @@ void EncCu::xCheckRDCostAffineMerge2Nx2N( CodingStructure *&tempCS, CodingStruct
       , &hasNoResidual);
   }
 }
+
+#if JVET_K0076_CPR
+//////////////////////////////////////////////////////////////////////////////////////////////
+// ibc merge/skip mode check
+void EncCu::xCheckRDCostIntraBCMerge2Nx2N(CodingStructure *&tempCS, CodingStructure *&bestCS, Partitioner &partitioner, const EncTestMode& encTestMode)
+{
+
+}
+
+void EncCu::xCheckRDCostIntraBC(CodingStructure *&tempCS, CodingStructure *&bestCS, Partitioner &partitioner, const EncTestMode& encTestMode)
+{
+  tempCS->initStructData( encTestMode.qp, encTestMode.lossless );
+  CodingUnit &cu      = tempCS->addCU( tempCS->area, partitioner.chType );
+
+  partitioner.setCUData(cu);
+  cu.slice = tempCS->slice;
+
+#if HEVC_TILES_WPP
+  cu.tileIdx = tempCS->picture->tileMap->getTileIdxMap(tempCS->area.lumaPos());
+#endif
+
+  cu.skip = false; 
+  cu.partSize = encTestMode.partSize;
+  cu.predMode = MODE_INTER;  
+  cu.transQuantBypass = encTestMode.lossless;
+  cu.chromaQpAdj = cu.transQuantBypass ? 0 : m_cuChromaQpOffsetIdxPlus1;
+  cu.qp = encTestMode.qp;
+  cu.ibc = true;
+
+
+
+
+
+}
+// check ibc mode in encoder RD
+//////////////////////////////////////////////////////////////////////////////////////////////
+#endif // CPR
+
+
+
+
 void EncCu::xCheckRDCostInter( CodingStructure *&tempCS, CodingStructure *&bestCS, Partitioner &partitioner, const EncTestMode& encTestMode )
 {
   tempCS->initStructData( encTestMode.qp, encTestMode.lossless );
@@ -1729,10 +1791,6 @@ void EncCu::xCheckRDCostInter( CodingStructure *&tempCS, CodingStructure *&bestC
   );
 
 }
-
-
-
-
 
 bool EncCu::xCheckRDCostInterIMV( CodingStructure *&tempCS, CodingStructure *&bestCS, Partitioner &partitioner, const EncTestMode& encTestMode )
 {

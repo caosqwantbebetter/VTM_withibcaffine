@@ -206,6 +206,17 @@ protected:
   bool      m_compositeRefEnabled;        //composite reference
   // ADD_NEW_TOOL : (encoder lib) add tool enabling flags and associated parameters here
 
+#if JVET_K0076_CPR
+  unsigned  m_IBCMode;
+  unsigned  m_IBCLocalSearchRangeX;
+  unsigned  m_IBCLocalSearchRangeY;
+  unsigned  m_IBCHashSearch;
+  unsigned  m_IBCHashSearchMaxCand;
+  unsigned  m_IBCHashSearchRange4SmallBlk;
+  unsigned  m_IBCFastMethod;
+#endif
+
+
   bool      m_useFastLCTU;
   bool      m_useFastMrg;
   bool      m_usePbIntraFast;
@@ -636,11 +647,28 @@ public:
   void      setInterEMT                     ( bool b )       { m_InterEMT = b; }
   bool      getInterEMT                     ()         const { return m_InterEMT; }
 
-
-
-
   void      setUseCompositeRef              (bool b)         { m_compositeRefEnabled = b; }
   bool      getUseCompositeRef              ()         const { return m_compositeRefEnabled; }
+
+
+
+#if JVET_K0076_CPR
+  void      setIBCMode                      (unsigned n)     { m_IBCMode = n; }
+  unsigned  getIBCMode                      ()         const { return m_IBCMode; }
+  void      setIBCLocalSearchRangeX         (unsigned n)     { m_IBCLocalSearchRangeX = n; }
+  unsigned  getIBCLocalSearchRangeX         ()         const { return m_IBCLocalSearchRangeX; }
+  void      setIBCLocalSearchRangeY         (unsigned n)     { m_IBCLocalSearchRangeY = n; }
+  unsigned  getIBCLocalSearchRangeY         ()         const { return m_IBCLocalSearchRangeY; }
+  void      setIBCHashSearch                (unsigned n)     { m_IBCHashSearch = n; }
+  unsigned  getIBCHashSearch                ()         const { return m_IBCHashSearch; }
+  void      setIBCHashSearchMaxCand         (unsigned n)     { m_IBCHashSearchMaxCand = n; }
+  unsigned  getIBCHashSearchMaxCand         ()         const { return m_IBCHashSearchMaxCand; }
+  void      setIBCHashSearchRange4SmallBlk  (unsigned n)     { m_IBCHashSearchRange4SmallBlk = n; }
+  unsigned  getIBCHashSearchRange4SmallBlk  ()         const { return m_IBCHashSearchRange4SmallBlk; }
+  void      setIBCFastMethod                (unsigned n)     { m_IBCFastMethod = n; }
+  unsigned  getIBCFastMethod                ()         const { return m_IBCFastMethod; }
+#endif
+
 
   // ADD_NEW_TOOL : (encoder lib) add access functions here
 

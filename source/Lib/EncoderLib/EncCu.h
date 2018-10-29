@@ -55,6 +55,11 @@
 #include "InterSearch.h"
 #include "RateCtrl.h"
 #include "EncModeCtrl.h"
+
+#if JVET_K0076_CPR
+#include "CommonLib/IbcHashMap.h"
+#endif
+
 //! \ingroup EncoderLib
 //! \{
 
@@ -105,6 +110,11 @@ private:
 
   CABACWriter*          m_CABACEstimator;
   RateCtrl*             m_pcRateCtrl;
+
+#if JVET_K0076_CPR
+  IbcHashMap            m_ibcHashMap;
+#endif
+
   CodingStructure    ***m_pImvTempCS;
   EncModeCtrl          *m_modeCtrl;
 
@@ -115,6 +125,13 @@ private:
   unsigned int          m_subMergeBlkNum[10];
   unsigned int          m_prevPOC;
   bool                  m_clearSubMergeStatic;
+
+
+#if JVET_K0076_CPR
+  int                   m_ctuIbcSearchRangeX;
+  int                   m_ctuIbcSearchRangeY;
+#endif
+
 #if ENABLE_SPLIT_PARALLELISM || ENABLE_WPP_PARALLELISM
   EncLib*               m_pcEncLib;
 #endif
@@ -195,6 +212,11 @@ protected:
   );
 #if REUSE_CU_RESULTS
   void xReuseCachedResult     ( CodingStructure *&tempCS, CodingStructure *&bestCS, Partitioner &Partitioner );
+#endif
+
+#if JVET_K0076_CPR
+  void xCheckRDCostIntraBC    ( CodingStructure *&tempCS, CodingStructure *&bestCS, Partitioner &pm, const EncTestMode& encTestMode );
+  void xCheckRDCostIntraBCMerge2Nx2N( CodingStructure *&tempCS, CodingStructure *&bestCS, Partitioner &partitioner, const EncTestMode& encTestMode );
 #endif
 };
 

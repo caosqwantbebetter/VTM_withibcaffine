@@ -69,6 +69,12 @@ enum EncTestModeType
   ETM_RECO_CACHED,
 #endif
   ETM_TRIGGER_IMV_LIST,
+
+#if JVET_K0076_CPR
+  ETM_IBC,    // ibc mode
+  ETM_IBC_MERGE, // ibc merge mode
+ #endif
+
   ETM_INVALID
 };
 
